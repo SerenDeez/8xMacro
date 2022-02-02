@@ -1,0 +1,307 @@
+//Example for JC Pro Macro board
+//set up to work in Mac OS
+//Includes support for 1306 display
+//Reference: https://github.com/NicoHood/HID/blob/master/src/KeyboardLayouts/ImprovedKeylayouts.h
+//Reference: https://arduinogetstarted.com/tutorials/arduino-button-long-press-short-press 
+//
+//To do:
+//Figure out what to do with bottom support - remake offset so locks in?
+//caps lock code? - does not work properly on Mac it seems
+
+// Declare variables etc=========================================
+
+bool SW1 = 1; //encoder button
+bool SW2 = 1; //lower-left keyswitch
+bool SW3 = 1;
+bool SW4 = 1; //lower-right keyswitch
+bool SW5 = 1;
+bool SW6 = 1; //upper-right keyswitch
+bool SW7 = 1; //JCPM 2 key
+bool SW8 = 1; //JCPM 2 key
+bool SW9 = 1; //JCPM 2 key
+bool SW10 = 1; //JCPM 2 mode switch
+/*
+bool SWST1 = 1; //encoder button
+bool SWST2 = 1; //lower-left keyswitch
+bool SWST3 = 1;
+bool SWST4 = 1; //lower-right keyswitch
+bool SWST5 = 1;
+bool SWST6 = 1; //upper-right keyswitch
+bool SWST7 = 1; //JCPM 2 key
+bool SWST8 = 1; //JCPM 2 key
+bool SWST9 = 1; //JCPM 2 key
+bool SWST10 = 1; //JCPM 2 mode switch
+
+bool LSWST1 = 1; //encoder button
+bool LSWST2 = 1; //lower-left keyswitch
+bool LSWST3 = 1;
+bool LSWST4 = 1; //lower-right keyswitch
+bool LSWST5 = 1;
+bool LSWST6 = 1; //upper-right keyswitch
+bool LSWST7 = 1; //JCPM 2 key
+bool LSWST8 = 1; //JCPM 2 key
+bool LSWST9 = 1; //JCPM 2 key
+bool LSWST10 = 1; //JCPM 2 mode switch
+*/
+
+unsigned int SWState[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+//unsigned int LastSWState[] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+unsigned int LEDState[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+const unsigned int SWPins[] = {15, A0, A1, A2, A3, 14, 16, 10, 4, 8};
+
+
+float brightness = 1;
+
+//const int SWState[][2] = {{SW1, 0}, {SW2, 0}, {SW3, 0}, {SW4, 0}, {SW5, 0}, {SW6, 0}, {SW7, 0}, {SW8, 0}, {SW9, 0}, {SW10, 0}};
+
+  bool LED1 = 0;
+  bool LED2 = 0;
+  bool LED3 = 0;
+  bool LED4 = 0;
+  bool LED5 = 0;
+  bool LED6 = 0;
+  bool LED7 = 0;
+  bool LED8 = 0;
+  bool LED9 = 0;
+
+bool underLight = 0;
+
+bool increment = 0;
+bool decrement = 0;
+long oldPosition;
+long newPosition;
+int inputMode = 0;
+int LEDLight = 1;
+int LEDCircle[6] = {2, 3, 4, 5, 6, 7};
+int counter = 0;
+bool nascar = 0;
+long newNascarTurnTime = 0;
+long oldNascarTurnTime = 0;
+long newBeatTime = 0;
+long oldBeatTime = 0;
+bool beatOn = 0;
+
+int fanSpeed = 0;
+bool fanPulse = 0;
+long newPulseTime = 0;
+long oldPulseTime = 0;
+int fanRPM = 0;
+char toneNote;
+
+int modeArray[] = {0, 1}; //adjust this array to modify sequence of modes - as written, change to {0, 1, 2, 3, 4, 5} to access all modes
+int inputModeIndex = 0;
+int modeArrayLength = (sizeof(modeArray) / sizeof(modeArray[0]));
+
+// Encoder setup =============================================
+
+#include <Encoder.h>
+#include <HID-Project.h>
+Encoder myEnc(1,0); //if rotation is backwards, swap 0 and 1
+
+// NeoPixel setup =============================================
+
+// NeoPixel Ring simple sketch (c) 2013 Shae Erisson
+// Released under the GPLv3 license to match the rest of the
+// Adafruit NeoPixel library
+
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+ #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
+#endif
+
+// Which pin on the Arduino is connected to the NeoPixels?
+#define PIN        5 // On Trinket or Gemma, suggest changing this to 1
+
+// How many NeoPixels are attached to the Arduino?
+#define NUMPIXELS 15 // Popular NeoPixel ring size
+
+// When setting up the NeoPixel library, we tell it how many pixels,
+// and which pin to use to send signals. Note that for older NeoPixel
+// strips you might need to change the third parameter -- see the
+// strandtest example for more information on possible values.
+Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+
+#define DELAYVAL 500 // Time (in milliseconds) to pause between pixels
+
+//============================================================
+
+//=====LED Brightness Declare======
+
+
+void setup() {
+
+  //NeoPixel setup=========================================
+
+  pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+  pixels.clear();
+  for(int i=0; i<8; i++){
+    pixels.setPixelColor(i, pixels.Color(160, 4, 250));
+  }
+  pixels.show(); // Show results
+  
+  delay(5000); //delay to allow programming DO NOT REMOVE!!!!!
+  //Serial.begin(9600);
+ //while(!Serial);
+
+  for (int i = 0; i < 10; i++) {
+    pinMode(SWPins[i], INPUT_PULLUP);
+  }
+  /*
+  pinMode(4, INPUT_PULLUP); //SW1 pushbutton (encoder button)
+  pinMode(15, INPUT_PULLUP); //SW2 pushbutton
+  pinMode(A0, INPUT_PULLUP); //SW3 pushbutton
+  pinMode(A1, INPUT_PULLUP); //SW4 pushbutton
+  pinMode(A2, INPUT_PULLUP); //SW5 pushbutton
+  pinMode(A3, INPUT_PULLUP); //SW6 pushbutton
+//===============new pins for JCPM
+
+  pinMode(14, INPUT_PULLUP); //SW7 pushbutton
+  pinMode(16, INPUT_PULLUP); //SW8 pushbutton
+  pinMode(10, INPUT_PULLUP); //SW9 pushbutton
+  pinMode(8, INPUT_PULLUP); //SW10 pushbutton - acts as mode switch
+*/
+//================end new pins
+
+  pixels.clear();
+  
+  
+Mouse.begin();
+Keyboard.begin();
+//BootKeyboard.begin(); - BootKeyboard use appears to give problems w/ Macintosh
+
+
+
+}
+
+void loop() {
+
+
+/*
+  SW1 = digitalRead(4);
+  SW2 = digitalRead(15);
+  SW3 = digitalRead(A0);
+  SW4 = digitalRead(A1);
+  SW5 = digitalRead(A2);
+  SW6 = digitalRead(A3);
+  SW7 = digitalRead(14);
+  SW8 = digitalRead(16);
+  SW9 = digitalRead(10);
+  SW10 = digitalRead(8);
+  */
+// state change detection
+
+
+
+  for (int i = 0; i < sizeof(SWState); i++) {
+    SWState[i] = digitalRead(SWPins[i]);
+    /*if (SWState[i] != LastSWState[i]) [
+      if (SWState[i] == HIGH) {
+        
+      }
+      LastSWState[i] = SWState[i];
+      delay(10);*/
+  }
+
+  newPosition = myEnc.read();
+  
+  if (newPosition > (oldPosition + 2)) { 
+    increment = 1;
+    delay(5);
+    oldPosition = myEnc.read();
+  }
+  if (newPosition < (oldPosition - 2)) {
+    decrement = 1;
+    delay(5);
+    oldPosition = myEnc.read();
+  }
+
+//=========change mode=================
+
+   if (SWState[10] == 0){
+      if (inputModeIndex < modeArrayLength){
+        inputModeIndex++;
+        inputMode = modeArray[inputModeIndex];
+      }
+      if (inputModeIndex == modeArrayLength){
+        inputModeIndex = 0;
+        inputMode = modeArray[inputModeIndex];
+      }
+      pixels.clear();
+      pixels.show();
+      SW10 = 1;
+      delay(150);
+    }
+
+//======select input mode:=======
+
+if (inputMode == 0){pixels.clear();}
+LEDmap();
+if (inputMode == 1) shine();
+/*
+if (inputMode == 2) ;
+if (inputMode == 3) ;
+if (inputMode == 4) ;
+if (inputMode == 5) ;
+if (inputMode == 6) ;
+*/
+
+//======LED brightness======
+
+
+}
+ void LEDcycle(){
+    for(int i=0; i<8; i++){
+      int bright = i * 10;
+    pixels.setPixelColor(i, pixels.Color(0, i, bright));
+    pixels.show();
+    delay (500);
+    pixels.clear();
+  }
+ }
+ 
+ void LEDmap(){
+  
+  if (SWState[9] == 0) pixels.clear();
+
+
+  for (int i = 0; i < 8; i++) {
+    if ((SWState[i] == 0) && (LEDState[i] == 0)) {
+      pixels.setPixelColor(i, pixels.Color(0, 20, 20));
+      LEDState[i] = 1;
+    }
+    else if ((SWState[i] == 0) && (LEDState[i] == 1)) {
+      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+      LEDState[i] = 0;
+    }
+    pixels.show();
+  }
+  delay(50);
+ 
+}
+ void shine() { 
+      long randNumber = random(-50, 50);
+      long randNumber1 = random(-50, 50);
+      long randNumber2 = random(-50, 50);
+      if (increment == 1 && brightness < 1 && SW1 == 1) brightness += 0.1;
+      if (increment == -1 && brightness > 0 && SW1 == 1) brightness -= 0.1;
+      
+      int xMap = brightness * map(randNumber, -50, 50, 0, 100);
+      int yMap = brightness * map(randNumber1, -50, 50, 0, 100);
+      int zMap = brightness * map(randNumber2, -50, 50, 0, 100);
+      pixels.setPixelColor(0, pixels.Color(xMap, yMap, zMap));
+      pixels.setPixelColor(2, pixels.Color(zMap, xMap, yMap));
+      pixels.setPixelColor(1, pixels.Color(yMap, zMap, xMap));
+      pixels.setPixelColor(3, pixels.Color(xMap, yMap, zMap));
+      pixels.setPixelColor(4, pixels.Color(zMap, xMap, yMap));    
+      pixels.setPixelColor(5, pixels.Color(yMap, zMap, xMap));    
+      pixels.setPixelColor(6, pixels.Color(xMap, yMap, zMap));    
+      pixels.setPixelColor(7, pixels.Color(zMap, xMap, yMap));
+      pixels.setPixelColor(8, pixels.Color(yMap, zMap, xMap));  
+      pixels.setPixelColor(9, pixels.Color(xMap, yMap, zMap));
+      pixels.setPixelColor(10, pixels.Color(zMap, xMap, yMap));
+      pixels.setPixelColor(11, pixels.Color(yMap, zMap, xMap));
+      pixels.setPixelColor(12, pixels.Color(xMap, yMap, zMap));
+      pixels.setPixelColor(13, pixels.Color(zMap, xMap, yMap));    
+      pixels.setPixelColor(14, pixels.Color(yMap, zMap, xMap));
+      pixels.show();
+      }
