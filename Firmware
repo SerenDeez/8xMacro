@@ -134,7 +134,7 @@ void setup() {
 
   pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
   pixels.clear();
-  for(int i=0; i<8; i++){
+  for(int i=0; i<15; i++){
     pixels.setPixelColor(i, pixels.Color(160, 4, 250));
   }
   pixels.show(); // Show results
@@ -262,21 +262,30 @@ if (inputMode == 6) ;
  void LEDmap(){
   
   if (SWState[9] == 0) pixels.clear();
-
+      long randNumber = random(-50, 50);
+      long randNumber1 = random(-50, 50);
+      long randNumber2 = random(-50, 50);
+      
+      int xMap = map(randNumber, -50, 50, 0, 100);
+      int yMap = map(randNumber1, -50, 50, 0, 100);
+      int zMap = map(randNumber2, -50, 50, 0, 100);
 
   for (int i = 0; i < 8; i++) {
-    if ((SWState[i] == 0) && (LEDState[i] == 0)) {
-      pixels.setPixelColor(i, pixels.Color(0, 20, 20));
-      LEDState[i] = 1;
+    if (SWState[i] == 0)  {
+      pixels.setPixelColor(i, pixels.Color(xMap, yMap, zMap));
     }
-    else if ((SWState[i] == 0) && (LEDState[i] == 1)) {
+    else if (SWState[i] == 0) {
       pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-      LEDState[i] = 0;
     }
     pixels.show();
   }
   delay(50);
- 
+
+/*  for (int i = 8; i < 16; i++) {
+    pixels.setPixelColor(i, pixels.Color(xMap, yMap, zMap));
+    pixels.show();
+    delay(100);    
+  }*/
 }
  void shine() { 
       long randNumber = random(-50, 50);
